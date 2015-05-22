@@ -1,2 +1,2 @@
 # have-a-rest
-General RESTful Framework
+How to RESTfully describe your resources

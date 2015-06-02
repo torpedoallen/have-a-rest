@@ -2,8 +2,8 @@
 
 
 
-from view import APIView
-from json_responses import JSONResponse
+from have_a_rest.view import APIView
+from have_a_rest.json_responses import JSONResponse
 
 
 class GoodsDetailView(APIView):

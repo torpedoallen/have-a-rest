@@ -1,18 +1,11 @@
 # coding=utf8
 
 
-import json
-
 from django.views.generic import View
-from api import settings as api_settings
-from api.decorators import validate_essential
 from django.views.decorators.csrf import csrf_exempt
 
 
 class APIView(View):
-
-    # TODO
-    # json & binary rendering and parsing supported
 
     @classmethod
     def as_view(cls, **kwargs):
@@ -29,7 +22,7 @@ class APIView(View):
         return handler(request, *args, **kwargs)
 
     def _validate(self, request, *args, **kwargs):
-        validate_essential(request, *args, **kwargs)
+        pass
 
 
 

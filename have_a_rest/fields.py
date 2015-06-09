@@ -140,6 +140,7 @@ class APIModel(Field):
         value = {}
         for k, kr in self._displaying_fields.iteritems():
             f = self._referenced_fields[kr]
+            f.key_deserializer = self.key_deserializer
             value[kr] =  f.deserialize(_data.get(k))
 
         obj = self.__model__(**value)
@@ -264,6 +265,20 @@ class ListField(BaseField):
         super(ListField, self).__init__(**kw)
 
 
+    def _deserialize(self, val):
+        if val is None:
+            return []
+        else:
+            ret = []
+            for i in val:
+                if isinstance(i, dict):
+                    ret.append(self._e(data=i, key_deserializer=self.key_deserializer).deserialize())
+                else:
+                    ret.append(i)
+            return ret
+
+
+
     def _serialize(self, val):
         if val is None:
             return None
@@ -271,7 +286,7 @@ class ListField(BaseField):
             return [self._e.serialize(i) for i in val]
 
     def default_check(self, val):
-        if not (val is None or type(val) == list):
+        if not (val is None or issubclass(val.__class__, list)):
             raise TypeError
 
 
@@ -288,6 +303,10 @@ class DictField(BaseField):
             return None
         else:
             return dict([(self._e_k.serialize(k), self._e_v.serialize(v)) for k, v in val.iteritems()])
+
+    def _deserialize(self, val):
+        # TODO
+        pass
 
     def default_check(self, val):
         if not (val is None or type(val) == dict):

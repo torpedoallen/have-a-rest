@@ -2,6 +2,7 @@
 
 
 
+import time
 import math
 import datetime
 import decimal
@@ -10,17 +11,20 @@ from abc import ABCMeta, abstractmethod
 
 
 TIME_ZONE = 'Asia/Shanghai'
+STEP = 1e3
 
 
 class empty:
     pass
 
 
-def get_utc_timestamp(dt):
+def get_utc_mili_timestamp(dt):
     cn_tz = pytz.timezone(TIME_ZONE)
     dt = cn_tz.localize(dt)
-    return int(round(time.mktime(dt.timetuple())))
+    return int(round(time.mktime(dt.timetuple()))) * STEP
 
+def get_datetime_from_utc_mili_timestamp(timestamp):
+    return datetime.datetime.fromtimestamp(timestamp/STEP)
 
 class Field(object):
     __metaclass__ = ABCMeta
@@ -62,12 +66,14 @@ class APIModel(Field):
 
     __model__ = None
 
-    def __init__(self, instance=None, data=empty, no_header=False, key_serializer=lambda x: x, **kw):
+    def __init__(self, instance=None, data=empty, no_header=False,
+            key_serializer=lambda x: x, key_deserializer=lambda x: x, **kw):
         super(APIModel, self).__init__(**kw)
         self._displaying_fields = {}
         self._referenced_fields = {}
         self._no_header = no_header
         self.key_serializer = key_serializer
+        self.key_deserializer = key_deserializer
         for k, v in self.__class__.__dict__.iteritems():
             if issubclass(v.__class__, Field):
                 if v._alias:
@@ -127,7 +133,10 @@ class APIModel(Field):
 
     def _deserialize(self, data):
         #pylint: disable=E1102
-        obj = self.__model__(**data)
+        d = {}
+        for k, v in data.iteritems():
+            d[self.key_deserializer(k)] = v
+        obj = self.__model__(**d)
         #pylint: enable=E1102
         return obj
 
@@ -316,7 +325,10 @@ class DatetimeField(BaseField):
         if not val:
             return 0
         else:
-            return get_utc_timestamp(val)
+            return get_utc_mili_timestamp(val)
+
+    def _deserialize(self, val):
+        return get_datetime_from_utc_mili_timestamp(val)
 
     def default_check(self, val):
         if not (val is None or type(val) in (datetime.datetime, datetime.date)):

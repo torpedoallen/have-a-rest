@@ -21,7 +21,7 @@ class empty:
 def get_utc_mili_timestamp(dt):
     cn_tz = pytz.timezone(TIME_ZONE)
     dt = cn_tz.localize(dt)
-    return int(round(time.mktime(dt.timetuple()))) * STEP
+    return int(time.mktime(dt.timetuple()) * STEP + dt.microsecond/STEP)
 
 def get_datetime_from_utc_mili_timestamp(timestamp):
     return datetime.datetime.fromtimestamp(timestamp/STEP)
@@ -46,7 +46,7 @@ class Field(object):
         return self._serialize(val)
 
     def deserialize(self, val_json):
-        self.default_check(val_json)
+        #self.default_check(val_json)
         return self._deserialize(val_json)
 
     @abstractmethod
@@ -133,10 +133,16 @@ class APIModel(Field):
 
     def _deserialize(self, data):
         #pylint: disable=E1102
-        d = {}
+        _data = {}
         for k, v in data.iteritems():
-            d[self.key_deserializer(k)] = v
-        obj = self.__model__(**d)
+            _data[self.key_deserializer(k)] = v
+
+        value = {}
+        for k, kr in self._displaying_fields.iteritems():
+            f = self._referenced_fields[kr]
+            value[kr] =  f.deserialize(_data.get(k))
+
+        obj = self.__model__(**value)
         #pylint: enable=E1102
         return obj
 

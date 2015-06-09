@@ -62,11 +62,12 @@ class APIModel(Field):
 
     __model__ = None
 
-    def __init__(self, instance=None, data=empty, no_header=False, **kw):
+    def __init__(self, instance=None, data=empty, no_header=False, key_serializer=lambda x: x, **kw):
         super(APIModel, self).__init__(**kw)
         self._displaying_fields = {}
         self._referenced_fields = {}
         self._no_header = no_header
+        self.key_serializer = key_serializer
         for k, v in self.__class__.__dict__.iteritems():
             if issubclass(v.__class__, Field):
                 if v._alias:
@@ -111,10 +112,10 @@ class APIModel(Field):
         for k, kr in self._displaying_fields.iteritems():
             f = self._referenced_fields[kr]
             if not isinstance(f, APIModel):
-                out.append('%s %s' % (k.ljust(indent), f.gen_doc(indent)))
+                out.append('%s %s' % (self.key_serializer(k.ljust(indent)), f.gen_doc(indent)))
             else:
                 out.append('%s %s %s' % (
-                    k.ljust(indent),
+                    self.key_serializer(k.ljust(indent)),
                     f.__model__._class_name.ljust(indent),
                     ('see <%s>' % f.__model__._class_name).ljust(indent),
                     ))
@@ -140,6 +141,7 @@ class APIModel(Field):
             try:
                 v = getattr(val, kr)
                 # 为None or 空 的数据也发给客户端
+                k = self.key_serializer(k)
                 out[k] = f.serialize(v)
 
             except AttributeError:

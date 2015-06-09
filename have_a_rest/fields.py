@@ -232,6 +232,8 @@ class StringField(BaseField):
             val = val.encode('utf8')
         return val
 
+    _deserialize = _serialize
+
     def default_check(self, val):
         if not (val is None or type(val) in (str, unicode)):
             raise TypeError("%r is not string" % val)
@@ -283,7 +285,8 @@ class ListField(BaseField):
         if val is None:
             return None
         else:
-            return [self._e.serialize(i) for i in val]
+            # FIXME
+            return [self._e(i).serialize(i) for i in val]
 
     def default_check(self, val):
         if not (val is None or issubclass(val.__class__, list)):

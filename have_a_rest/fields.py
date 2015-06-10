@@ -41,20 +41,20 @@ class Field(object):
             self._desc.ljust(indent),
             self._sample.ljust(indent))
 
-    def serialize(self, val):
+    def serialize(self, val, serializer=lambda x:x):
         self.default_check(val)
-        return self._serialize(val)
+        return self._serialize(val, serializer=serializer)
 
-    def deserialize(self, val_json):
+    def deserialize(self, val_json, deserializer=lambda x:x):
         #self.default_check(val_json)
-        return self._deserialize(val_json)
+        return self._deserialize(val_json, deserializer=deserializer)
 
     @abstractmethod
-    def _serialize(self, val):
+    def _serialize(self, val, serializer=lambda x:x):
         pass
 
     @abstractmethod
-    def _deserialize(self, val):
+    def _deserialize(self, val, deserializer=lambda x:x):
         pass
 
     @abstractmethod
@@ -66,14 +66,11 @@ class APIModel(Field):
 
     __model__ = None
 
-    def __init__(self, instance=None, data=empty, no_header=False,
-            key_serializer=lambda x: x, key_deserializer=lambda x: x, **kw):
+    def __init__(self, instance=None, data=empty, no_header=False, **kw):
         super(APIModel, self).__init__(**kw)
         self._displaying_fields = {}
         self._referenced_fields = {}
         self._no_header = no_header
-        self.key_serializer = key_serializer
-        self.key_deserializer = key_deserializer
         for k, v in self.__class__.__dict__.iteritems():
             if issubclass(v.__class__, Field):
                 if v._alias:
@@ -90,18 +87,18 @@ class APIModel(Field):
         for k, v in self._referenced_fields.iteritems():
             yield (k, v)
 
-    def serialize(self, val=None):
+    def serialize(self, val=None, serializer=lambda x:x):
         if not val:
             val = self._instance
         self.default_check(val)
-        return self._serialize(val)
+        return self._serialize(val, serializer=serializer)
 
-    def deserialize(self):
+    def deserialize(self, deserializer=lambda x:x):
         # free data
         assert self._data is not None
         assert self.__model__ is not None
         self.default_check(self._data)
-        return self._deserialize(self._data)
+        return self._deserialize(self._data, deserializer=deserializer)
 
     def gen_doc(self, indent=36):
         out = []
@@ -118,10 +115,10 @@ class APIModel(Field):
         for k, kr in self._displaying_fields.iteritems():
             f = self._referenced_fields[kr]
             if not isinstance(f, APIModel):
-                out.append('%s %s' % (self.key_serializer(k.ljust(indent)), f.gen_doc(indent)))
+                out.append('%s %s' % (k.ljust(indent), f.gen_doc(indent)))
             else:
                 out.append('%s %s %s' % (
-                    self.key_serializer(k.ljust(indent)),
+                    k.ljust(indent),
                     f.__model__._class_name.ljust(indent),
                     ('see <%s>' % f.__model__._class_name).ljust(indent),
                     ))
@@ -131,23 +128,22 @@ class APIModel(Field):
         out.append('')
         return "\n".join(out)
 
-    def _deserialize(self, data):
+    def _deserialize(self, data, deserializer=lambda x:x):
         #pylint: disable=E1102
         _data = {}
         for k, v in data.iteritems():
-            _data[self.key_deserializer(k)] = v
+            _data[deserializer(k)] = v
 
         value = {}
         for k, kr in self._displaying_fields.iteritems():
             f = self._referenced_fields[kr]
-            f.key_deserializer = self.key_deserializer
-            value[kr] =  f.deserialize(_data.get(k))
+            value[kr] =  f.deserialize(_data.get(k), deserializer=deserializer)
 
         obj = self.__model__(**value)
         #pylint: enable=E1102
         return obj
 
-    def _serialize(self, val):
+    def _serialize(self, val, serializer=lambda x:x):
         if val is None:
             return None
 
@@ -157,8 +153,8 @@ class APIModel(Field):
             try:
                 v = getattr(val, kr)
                 # 为None or 空 的数据也发给客户端
-                k = self.key_serializer(k)
-                out[k] = f.serialize(v)
+                k = serializer(k)
+                out[k] = f.serialize(v, serializer=serializer)
 
             except AttributeError:
                 print 'AttributeError'
@@ -190,14 +186,15 @@ class APIModel(Field):
 class BaseField(Field):
     '''base'''
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         return val
 
-    def _deserialize(self, val):
+    def _deserialize(self, val, **kw):
         return val
 
     def default_check(self, val):
         raise NotImplementedError
+
 
 class IdField(BaseField):
     '''id'''
@@ -227,12 +224,18 @@ class AnyField(BaseField):
 class StringField(BaseField):
     '''string'''
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         if isinstance(val, unicode):
             val = val.encode('utf8')
         return val
 
-    _deserialize = _serialize
+    def _deserialize(self, val, **kw):
+        if isinstance(val, unicode):
+            val = val.encode('utf8')
+        return val
+
+
+    #_deserialize = _serialize
 
     def default_check(self, val):
         if not (val is None or type(val) in (str, unicode)):
@@ -267,26 +270,26 @@ class ListField(BaseField):
         super(ListField, self).__init__(**kw)
 
 
-    def _deserialize(self, val):
+    def _deserialize(self, val, deserializer=lambda x:x):
         if val is None:
             return []
         else:
             ret = []
             for i in val:
                 if isinstance(i, dict):
-                    ret.append(self._e(data=i, key_deserializer=self.key_deserializer).deserialize())
+                    ret.append(self._e(data=i).deserialize(deserializer=deserializer))
                 else:
                     ret.append(i)
             return ret
 
 
 
-    def _serialize(self, val):
+    def _serialize(self, val, serializer=lambda x:x):
         if val is None:
             return None
         else:
             # FIXME
-            return [self._e(i).serialize(i) for i in val]
+            return [self._e(i).serialize(i, serializer=serializer) for i in val]
 
     def default_check(self, val):
         if not (val is None or issubclass(val.__class__, list)):
@@ -301,13 +304,13 @@ class DictField(BaseField):
         self._e_v = e_v()
         super(DictField, self).__init__(**kw)
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         if val is None:
             return None
         else:
             return dict([(self._e_k.serialize(k), self._e_v.serialize(v)) for k, v in val.iteritems()])
 
-    def _deserialize(self, val):
+    def _deserialize(self, val, **kw):
         # TODO
         pass
 
@@ -349,13 +352,13 @@ class DatetimeField(BaseField):
     def __init__(self, sample='14000000', **kw):
         super(DatetimeField, self).__init__(sample=sample, **kw)
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         if not val:
             return 0
         else:
             return get_utc_mili_timestamp(val)
 
-    def _deserialize(self, val):
+    def _deserialize(self, val, **kw):
         return get_datetime_from_utc_mili_timestamp(val)
 
     def default_check(self, val):

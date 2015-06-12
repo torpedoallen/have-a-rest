@@ -20,7 +20,12 @@ class empty:
 
 def get_utc_mili_timestamp(dt):
     cn_tz = pytz.timezone(TIME_ZONE)
-    dt = cn_tz.localize(dt)
+
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(cn_tz)
+    else:
+        dt = cn_tz.localize(dt)
+
     return int(time.mktime(dt.timetuple()) * STEP + dt.microsecond/STEP)
 
 def get_datetime_from_utc_mili_timestamp(timestamp):

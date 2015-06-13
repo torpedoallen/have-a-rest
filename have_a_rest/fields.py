@@ -204,7 +204,7 @@ class BaseField(Field):
 class IdField(BaseField):
     '''id'''
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         if not val:
             return ''
         return str(val)
@@ -340,7 +340,7 @@ class AmountField(BaseField):
         self._unit = unit
 
 
-    def _serialize(self, val):
+    def _serialize(self, val, **kw):
         if not val:
             return 0
         else:

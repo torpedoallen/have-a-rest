@@ -210,9 +210,7 @@ class IdField(BaseField):
         return str(val)
 
     def default_check(self, val):
-        from bson import ObjectId
-        if not (val is None or type(val) in (ObjectId, str, int, long, unicode)):
-            raise TypeError("%r is not id" % val)
+        pass
 
 
 class AnyField(BaseField):

@@ -13,21 +13,21 @@ __all__ = ['JSONResponse', 'JSONErrorResponse', 'HttpError',
 class JSONResponse(http.HttpResponse):
     """HTTP response with JSON body ("application/json" content type)"""
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, serializer=lambda x:x, **kwargs):
         """
         Create a new JSONResponse with the provided data (will be serialized
         to JSON using django.core.serializers.json.DjangoJSONEncoder).
         """
 
         kwargs['content_type'] = 'application/json; charset=utf-8'
-        super(JSONResponse, self).__init__(json.dumps(data,
+        super(JSONResponse, self).__init__(json.dumps(serializer(data),
             cls=DjangoJSONEncoder), **kwargs)
 
 
 class JSONErrorResponse(JSONResponse):
     """HTTP Error response with JSON body ("application/json" content type)"""
 
-    def __init__(self, reason, **additional_data):
+    def __init__(self, reason, serializer=lambda x:x, **additional_data):
         """
         Create a new JSONErrorResponse with the provided error reason (string)
         and the optional additional data (will be added to the resulting
@@ -35,7 +35,7 @@ class JSONErrorResponse(JSONResponse):
         """
         resp = {'error': reason}
         resp.update(additional_data)
-        super(JSONErrorResponse, self).__init__(resp)
+        super(JSONErrorResponse, self).__init__(resp, serializer=serializer)
 
 
 class Http200(JSONResponse):

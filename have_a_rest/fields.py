@@ -325,7 +325,7 @@ class DictField(BaseField):
 class AmountField(BaseField):
     '''amount'''
 
-    UNIT_TYPE_FEN, UNIT_TYPE_YUAN, UNIT_TYPE_WAN, UNIT_TYPE_YI = range(3)
+    UNIT_TYPE_FEN, UNIT_TYPE_YUAN, UNIT_TYPE_WAN, UNIT_TYPE_YI = range(4)
 
     TRANSFERING_MAPPER = {
         UNIT_TYPE_FEN: 1,

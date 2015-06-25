@@ -328,6 +328,7 @@ class AmountField(BaseField):
     UNIT_TYPE_YUAN, UNIT_TYPE_WAN, UNIT_TYPE_YI = range(3)
 
     TRANSFERING_MAPPER = {
+        UNIT_TYPE_FEN: 1,
         UNIT_TYPE_YUAN: 100,
         UNIT_TYPE_WAN: 1000000,
         UNIT_TYPE_YI: 10000000000,

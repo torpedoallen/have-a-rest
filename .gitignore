@@ -1,0 +1,7 @@
+*.pyc
+*.swp
+*.egg-info/
+.venv/
+local_settings.py
+build/
+dist/

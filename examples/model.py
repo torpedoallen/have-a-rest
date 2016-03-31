@@ -1,5 +1,6 @@
 # coding=utf8
 
+import datetime
 
 class Goods(object):
 
@@ -11,6 +12,6 @@ class Goods(object):
     @classmethod
     def get(cls, gid):
         # get the obj
-        return None
+        return cls(gid, datetime.datetime.now(), 2)
 
 

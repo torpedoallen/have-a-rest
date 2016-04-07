@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.1'
+version = '0.1.1'
 
 setup(name='have_a_rest',
       version=version,
@@ -18,6 +18,7 @@ setup(name='have_a_rest',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
+          'pytz',
           # -*- Extra requirements: -*-
       ],
       entry_points="""

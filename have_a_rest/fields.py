@@ -34,11 +34,12 @@ def get_datetime_from_utc_mili_timestamp(timestamp):
 class Field(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, alias=None, name='', desc='', sample=''):
+    def __init__(self, alias=None, name='', desc='', sample='', required=False):
         self._alias = alias
         self._name = name
         self._desc = desc
         self._sample = sample
+        self._required = required
 
     def gen_doc(self, indent=20):
         return '%s %s %s' % (
@@ -48,6 +49,9 @@ class Field(object):
 
     def serialize(self, val, serializer=lambda x:x):
         self.default_check(val)
+        if self._required:
+            self.required_check(val)
+
         return self._serialize(val, serializer=serializer)
 
     def deserialize(self, val_json, deserializer=lambda x:x):
@@ -66,6 +70,9 @@ class Field(object):
     def default_check(self, val):
         pass
 
+    @abstractmethod
+    def required_check(self, val):
+        pass
 
 class APIModel(Field):
 
@@ -187,6 +194,8 @@ class APIModel(Field):
     def default_check(self, val):
         pass
 
+    def required_check(self, val):
+        pass
 
 class BaseField(Field):
     '''base'''
@@ -200,6 +209,9 @@ class BaseField(Field):
     def default_check(self, val):
         raise NotImplementedError
 
+    def required_check(self, val):
+        if val is None:
+            raise ValueError('field(%s) is required' % self._name)
 
 class IdField(BaseField):
     '''id'''

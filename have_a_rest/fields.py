@@ -162,6 +162,7 @@ class APIModel(Field):
         out = {}
         for k, kr in self._displaying_fields.iteritems():
             f = self._referenced_fields[kr]
+            v = None
             try:
                 v = getattr(val, kr)
                 # 为None or 空 的数据也发给客户端
